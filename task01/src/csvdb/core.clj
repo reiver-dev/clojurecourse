@@ -14,21 +14,21 @@
 ;;
 ;; Hint: vec, map, keyword, first
 (defn table-keys [tbl]
-  (vec (map keyword (first tbl))))
+  (mapv keyword (first tbl)))
 
 ;; (key-value-pairs [:id :surname :year :group_id] ["1" "Ivanov" "1996"])
 ;; => (:id "1" :surname "Ivanov" :year "1996")
 ;;
 ;; Hint: flatten, map, list
 (defn key-value-pairs [tbl-keys tbl-record]
-  (flatten (map list tbl-keys tbl-record)))
+  (mapcat list tbl-keys tbl-record))
 
 ;; (data-record [:id :surname :year :group_id] ["1" "Ivanov" "1996"])
 ;; => {:surname "Ivanov", :year "1996", :id "1"}
 ;;
 ;; Hint: apply, hash-map, key-value-pairs
 (defn data-record [tbl-keys tbl-record]
-  (apply hash-map (key-value-pairs tbl-keys tbl-record)))
+  (zipmap tbl-keys tbl-record))
 
 ;; (data-table student-tbl)
 ;; => ({:surname "Ivanov", :year "1996", :id "1"}
@@ -45,7 +45,7 @@
 ;;
 ;; Hint: assoc, Integer/parseInt, get
 (defn str-field-to-int [field rec]
-  (assoc rec field (parse-int (get rec field))))
+  (update-in rec [field] parse-int))
 
 (def student (->> (data-table student-tbl)
                   (map #(str-field-to-int :id %))
@@ -100,11 +100,10 @@
   ;; 4. Use function 'merge' and merge element1 with each element2.
   ;; 5. Collect merged elements.
   (vec
-   (for [e1 data1]
-     (merge (first
-             (let [field (get e1 column1)]
-               (filter #(= field (get % column2)) data2)))
-            e1))))
+   (for [e1 data1
+         e2 data2
+         :when (= (e1 column1) (e2 column2))]
+     (merge e2 e1))))
 
 
 ;; (perform-joins student-subject [[:student_id student :id] [:subject_id subject :id]])
