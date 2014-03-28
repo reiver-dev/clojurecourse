@@ -2,17 +2,27 @@
   (:use [task02 helpers db])
   (require [clojure.core.match :as cm]))
 
+(defn make-where-value [val]
+  (let [value (re-matches #"'(.*)'" val)]
+    (if value
+      (second value)
+      (parse-int val))))
+
+(defn make-where-function [field op val]
+  (let [value (make-where-value val)]
+    (list
+     :where
+     (fn [data]
+       (= ((keyword field) data) value)))))
 
 (defn parse-select-impl [query]
   (cm/match [query]
-            [["select" table & rest]] (list table rest)
+            [["select" table & rest]] (list (list table) rest)
             [["where" field op val & rest]] (list (make-where-function field op val) rest)
+            [["order" "by" column & rest]] (list (list :order-by (keyword column)) rest)
             [["limit" val & rest]] (list (list :limit (parse-int val)) rest)
-            [["join" table "on" col1 "=" col2]] (list (list :join [(keyword col1) table (keyword col2)])) 
+            [["join" table "on" col1 "=" col2 & rest]] (list (list :joins [[(keyword col1) table (keyword col2)]]) rest) 
             :else (list '() [])))
-
-(defn make-where-function [field op val]
-  (list :where (fn [data] (= ((keyword field) data) val))))
 
 ;; Функция выполняющая парсинг запроса переданного пользователем
 ;;
@@ -51,11 +61,10 @@
   (loop [input (vec (.split sel-string " "))
         query []]
     (if (empty? input)
-      query
+      (apply concat query) 
       (let [r (parse-select-impl input)]
         (recur (second r)
                (conj query (first r)))))))
-
 
 ;; Выполняет запрос переданный в строке.  Бросает исключение если не удалось распарсить запрос
 
